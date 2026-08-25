@@ -39,8 +39,25 @@
 
 set -u
 
+# Sciezki systemowe. Czesc narzedzi tego kursu to programy administracyjne i lezy
+# w /usr/sbin: na Rocky i Ubuntu katalog ten jest w PATH zwyklego uzytkownika,
+# na Debianie NIE JEST. Bez tej linijki skrypt zglaszalby BRAK przy poprawnie
+# zainstalowanych "john" i "cryptsetup" - czyli falszywy alarm, a fałszywy alarm
+# uczy ignorowania alarmow. Sprawdzamy nadal POLECENIA, a nie pliki: test negatywny
+# z punktu 7 lekcji dziala bez zmian, bo /usr/local/bin bylo w PATH od poczatku.
+PATH="$PATH:/usr/sbin:/sbin"
+export PATH
+
 LICZNIK_OK=0
 LICZNIK_BRAK=0
+LICZNIK_INFO=0
+
+# Rodzina systemu. Potrzebna przy dwoch pozycjach, ktorych RHEL 10 nie pakietuje.
+RODZINA=$(. /etc/os-release 2>/dev/null; printf '%s %s' "${ID:-}" "${ID_LIKE:-}")
+case "$RODZINA" in
+    *rhel*|*fedora*|*centos*) RODZINA_RHEL=tak ;;
+    *)                        RODZINA_RHEL=nie ;;
+esac
 
 # ---------------------------------------------------------------------------
 # Funkcje pomocnicze
@@ -56,6 +73,13 @@ wypisz_brak() {
     LICZNIK_BRAK=$((LICZNIK_BRAK + 1))
 }
 
+# Pozycja nieobowiazkowa na TEJ rodzinie systemow: jej brak nie jest bledem
+# i nie psuje wyniku laboratorium.
+wypisz_info() {
+    printf '[ INFO]  %-13s %s\n' "$1" "$2"
+    LICZNIK_INFO=$((LICZNIK_INFO + 1))
+}
+
 # Czy powloka umie uruchomic to polecenie?
 mam_polecenie() {
     command -v "$1" >/dev/null 2>&1
@@ -64,7 +88,26 @@ mam_polecenie() {
 # Wyciaga pierwszy ciag wygladajacy na numer wersji z pierwszych linii wyniku.
 # Bierzemy tez stderr, bo czesc narzedzi wypisuje wersje wlasnie tam.
 pierwsza_wersja() {
-    "$@" 2>&1 | head -n 5 | grep -oE '[0-9]+\.[0-9]+([.a-zA-Z0-9_-]*)?' | head -n 1
+    "$@" 2>&1 | head -n 5 | grep -oE '[0-9]+\.[0-9]+([.a-zA-Z0-9_-]*)?' | head -n 1 |
+        sed 's/[.,;:-]*$//'
+}
+
+# Pozycja nieobowiazkowa: jak wyzej, ale brak konczy sie statusem [ INFO],
+# a nie [ BRAK]. Trzeci argument to powod, wypisywany kursantowi.
+sprawdz_narzedzie_opcjonalne() {
+    polecenie="$1"
+    etykieta="$2"
+    powod="$3"
+    shift 3
+    if ! mam_polecenie "$polecenie"; then
+        wypisz_info "$etykieta" "$powod"
+        return
+    fi
+    wersja=$(pierwsza_wersja "$@")
+    if [ -z "$wersja" ]; then
+        wersja="obecny"
+    fi
+    wypisz_ok "$etykieta" "$wersja"
 }
 
 # Standardowa pozycja: nazwa polecenia, etykieta w raporcie, polecenie wersji.
@@ -101,6 +144,7 @@ printf ' Jadro   : %s\n' "$(uname -r)"
 printf ' Data    : %s\n' "$(date '+%Y-%m-%d %H:%M:%S')"
 echo "---------------------------------------------------------------------------"
 echo " Legenda:  [ OK  ] polecenie dostepne     [ BRAK] polecenia nie ma"
+echo "           [ INFO] pozycja nieobowiazkowa na tym systemie - nie liczy sie jako BRAK"
 echo " Numery wersji przepisz do swojej noty wersji (zadanie 2 z lekcji 3)."
 echo "---------------------------------------------------------------------------"
 
@@ -140,12 +184,27 @@ fi
 sprawdz_narzedzie gpg "gpg" gpg --version
 
 # 4. john the ripper
-sprawdz_narzedzie john "john" john --list=build-info
+#    UWAGA: na RHEL 10 tego pakietu NIE MA w zadnym repozytorium, takze w EPEL.
+#    Lamanie hasel wykonujemy w rozdziale trzecim na SRV1 (Debian); Rocky sluzy
+#    tam wylacznie jako zrodlo skrotu w innym formacie, a skrot mozna przeniesc.
+if [ "$RODZINA_RHEL" = tak ]; then
+    sprawdz_narzedzie_opcjonalne john "john" \
+        "brak w repozytoriach RHEL - lamanie hasel robimy na SRV1" \
+        john --list=build-info
+else
+    sprawdz_narzedzie john "john" john --list=build-info
+fi
 
 # 5. hashcat
 #    Przelacznik "-V" wypisuje sama wersje i NIE uruchamia silnika
 #    obliczeniowego - w maszynie bez karty graficznej to istotna roznica.
-sprawdz_narzedzie hashcat "hashcat" hashcat -V
+if [ "$RODZINA_RHEL" = tak ]; then
+    sprawdz_narzedzie_opcjonalne hashcat "hashcat" \
+        "brak w repozytoriach RHEL - lamanie hasel robimy na SRV1" \
+        hashcat -V
+else
+    sprawdz_narzedzie hashcat "hashcat" hashcat -V
+fi
 
 # 6. tshark (na Rocky Linuksie z pakietu "wireshark-cli")
 sprawdz_narzedzie tshark "tshark" tshark -v
@@ -204,10 +263,15 @@ fi
 # Podsumowanie
 # ---------------------------------------------------------------------------
 
-RAZEM=$((LICZNIK_OK + LICZNIK_BRAK))
+RAZEM=$((LICZNIK_OK + LICZNIK_BRAK + LICZNIK_INFO))
 
 echo "---------------------------------------------------------------------------"
-printf ' PODSUMOWANIE: %s pozycji  ->  %s OK, %s BRAK\n' "$RAZEM" "$LICZNIK_OK" "$LICZNIK_BRAK"
+if [ "$LICZNIK_INFO" -eq 0 ]; then
+    printf ' PODSUMOWANIE: %s pozycji  ->  %s OK, %s BRAK\n' "$RAZEM" "$LICZNIK_OK" "$LICZNIK_BRAK"
+else
+    printf ' PODSUMOWANIE: %s pozycji  ->  %s OK, %s BRAK, %s nieobowiazkowe\n' \
+        "$RAZEM" "$LICZNIK_OK" "$LICZNIK_BRAK" "$LICZNIK_INFO"
+fi
 
 if [ "$LICZNIK_BRAK" -eq 0 ]; then
     echo " Wynik: KOMPLET. Warsztat kursu jest na tej maszynie kompletny."
@@ -215,8 +279,9 @@ if [ "$LICZNIK_BRAK" -eq 0 ]; then
     exit 0
 else
     echo " Wynik: NIEKOMPLETNE."
-    echo " Co teraz: kazda pozycja BRAK ma swoje polecenie instalacyjne w pliku"
-    echo "           inwentarz-narzedzi.md w repozytorium materialow kursu."
+    echo " Co teraz: polecenie instalacyjne dla kazdej pozycji BRAK stoi"
+    echo "           w INSTRUKCJI LABORATORYJNEJ do tej lekcji, w zasobach"
+    echo "           lekcji na platformie AdminAkademia."
     echo "           Uzupelnij braki i uruchom ten skrypt jeszcze raz."
     echo "==========================================================================="
     exit 1

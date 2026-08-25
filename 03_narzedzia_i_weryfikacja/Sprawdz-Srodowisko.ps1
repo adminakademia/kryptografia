@@ -350,8 +350,9 @@ Write-Wiersz (' PODSUMOWANIE: {0} pozycji  ->  {1} OK, {2} BRAK, {3} nie moge sp
 $kodWyjscia = 0
 if ($script:LicznikBrak -gt 0) {
     Write-Wiersz ' Wynik: NIEKOMPLETNE.'
-    Write-Wiersz ' Co teraz: polecenie instalacyjne dla kazdej pozycji jest w pliku'
-    Write-Wiersz '           inwentarz-narzedzi.md w repozytorium materialow kursu.'
+    Write-Wiersz ' Co teraz: polecenie instalacyjne dla kazdej pozycji BRAK stoi'
+    Write-Wiersz '           w INSTRUKCJI LABORATORYJNEJ do tej lekcji, w zasobach'
+    Write-Wiersz '           lekcji na platformie AdminAkademia.'
     $kodWyjscia = 1
 } elseif ($script:LicznikNiewi -gt 0) {
     Write-Wiersz ' Wynik: bez brakow, ale co najmniej jednej pozycji nie dalo sie sprawdzic.'
