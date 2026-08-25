@@ -1,0 +1,14 @@
+# SHA256SUMS - katalog 03_narzedzia_i_weryfikacja
+# Kurs "Kryptografia w praktyce" - lekcja 3: narzedzia kursu i weryfikacja srodowiska
+#
+# Weryfikacja na Linuksie (pomija pliki, ktorych jeszcze nie pobrales):
+#   sha256sum --ignore-missing -c SHA256SUMS
+#
+# Weryfikacja na Windowsie - patrz instrukcja laboratoryjna do tej lekcji.
+#
+# Sumy policzone z bajtow plikow w repozytorium. Konce linii maja znaczenie:
+# .sh ma LF, .ps1 ma CRLF z BOM. Plik .gitattributes oznacza je jako binarne (-text),
+# zeby Git ich nie normalizowal - inaczej suma u autora nie zgodzi sie z suma u kursanta.
+1a6dfd6850b2b18602835bc88a39782fc49e48c7da14fa1de0750d4fb319d78b  Sprawdz-Srodowisko.ps1
+80cd61f8c2b52897e88834b7a391f133972ae264eb192be91ae8e22f61ce2827  pakiety-windows.json
+569de5b6d5807d9e45122f69ca4a89794779ca50c07f910d91f09183ee66931e  sprawdz-srodowisko.sh
