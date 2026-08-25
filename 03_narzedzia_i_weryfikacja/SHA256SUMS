@@ -10,5 +10,5 @@
 # .sh ma LF, .ps1 ma CRLF z BOM. Plik .gitattributes oznacza je jako binarne (-text),
 # zeby Git ich nie normalizowal - inaczej suma u autora nie zgodzi sie z suma u kursanta.
 5f95c3535cd3e95312c7677d91d30570e1538a964cf9f68e25e7d093919e93ae  Sprawdz-Srodowisko.ps1
-CFD02B77FDB79F0E106E129A2FD44C27DF25499E3573274D434E0DDF470C2838  pakiety-windows.json
+4460E1A8F86255F4A4CA490F91C278DF3E4772EF7D6C923346E7DF1831713111  pakiety-windows.json
 a0de9c1fea06f66cd47b22e4e9f20f920a9b18a0668ba9f509dfb76d87f2933f  sprawdz-srodowisko.sh
